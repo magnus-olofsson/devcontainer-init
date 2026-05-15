@@ -53,4 +53,7 @@ public class GitHubService
 
     public string GetDockerfilePath(string templateName) =>
         $"{_templatesPath}/{templateName}/Dockerfile";
+
+    public string GetReadmePath(string templateName) =>
+        $"{_templatesPath}/{templateName}/README.md";
 }
