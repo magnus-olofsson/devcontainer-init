@@ -69,10 +69,16 @@ for (int i = 0; i < templates.Count; i++)
         AnsiConsole.MarkupLine($"     [grey]{templates[i].Description}[/]");
 }
 
-AnsiConsole.WriteLine();
-var choice = AnsiConsole.Ask<int>("Välj template (nummer):");
+AnsiConsole.MarkupLine("  [grey]x[/]. Avbryt\n");
+var input = AnsiConsole.Ask<string>("Välj template (nummer) eller [grey]x[/] för att avbryta:");
 
-if (choice < 1 || choice > templates.Count)
+if (input.Trim().Equals("x", StringComparison.OrdinalIgnoreCase))
+{
+    AnsiConsole.MarkupLine("[grey]Avbrutet.[/]");
+    return;
+}
+
+if (!int.TryParse(input, out var choice) || choice < 1 || choice > templates.Count)
 {
     AnsiConsole.MarkupLine("[red]Ogiltigt val.[/]");
     return;
