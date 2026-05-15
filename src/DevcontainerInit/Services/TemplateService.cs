@@ -17,20 +17,13 @@ public class TemplateService
     {
         var templates = await _github.GetTemplatesAsync();
 
-        foreach (var template in templates)
+        foreach (var template in templates.Where(t => t.HasReadme))
         {
-            template.HasDockerfile = await _github.FileExistsAsync(
-                _github.GetDockerfilePath(template.Name));
-
-            try
-            {
-                var readme = await _github.GetFileContentAsync(_github.GetReadmePath(template.Name));
-                template.Description = readme
-                    .Split('\n')
-                    .Select(l => l.Trim())
-                    .FirstOrDefault(l => l.Length > 0 && !l.StartsWith('#'));
-            }
-            catch { }
+            var readme = await _github.GetFileContentAsync(_github.GetReadmePath(template.Name));
+            template.Description = readme
+                .Split('\n')
+                .Select(l => l.Trim())
+                .FirstOrDefault(l => l.Length > 0 && !l.StartsWith('#'));
         }
 
         return templates;
@@ -38,17 +31,12 @@ public class TemplateService
 
     public async Task<string> DownloadDevcontainerJsonAsync(string templateName)
     {
-        var path = _github.GetDevcontainerJsonPath(templateName);
-        return await _github.GetFileContentAsync(path);
+        return await _github.GetFileContentAsync(_github.GetDevcontainerJsonPath(templateName));
     }
 
-    public async Task<string?> DownloadDockerfileAsync(string templateName)
+    public async Task<string> DownloadDockerfileAsync(string templateName)
     {
-        var path = _github.GetDockerfilePath(templateName);
-        if (!await _github.FileExistsAsync(path))
-            return null;
-
-        return await _github.GetFileContentAsync(path);
+        return await _github.GetFileContentAsync(_github.GetDockerfilePath(templateName));
     }
 
     public bool ImageExists(string imageName) => _docker.ImageExists(imageName);
