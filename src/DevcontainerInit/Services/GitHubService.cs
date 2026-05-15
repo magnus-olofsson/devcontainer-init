@@ -1,31 +1,44 @@
+using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DevcontainerInit.Models;
-using Octokit;
 
 namespace DevcontainerInit.Services;
 
 public class GitHubService
 {
-    private readonly GitHubClient _client;
+    private readonly HttpClient _http;
     private readonly string _owner;
     private readonly string _repo;
     private readonly string _templatesPath;
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     public GitHubService(AppConfig config)
     {
-        _client = new GitHubClient(new ProductHeaderValue("devcontainer-init"));
         _owner = config.GitHubOwner;
         _repo = config.GitHubRepo;
         _templatesPath = config.TemplatesPath;
+
+        _http = new HttpClient();
+        _http.DefaultRequestHeaders.UserAgent.Add(
+            new ProductInfoHeaderValue("devcontainer-init", "1.0"));
     }
 
     public async Task<List<Template>> GetTemplatesAsync()
     {
-        var tree = await _client.Git.Tree.GetRecursive(_owner, _repo, "HEAD");
-        var paths = tree.Tree.Select(t => t.Path).ToHashSet();
+        var url = $"https://api.github.com/repos/{_owner}/{_repo}/git/trees/HEAD?recursive=1";
+        var json = await _http.GetStringAsync(url);
+        var response = JsonSerializer.Deserialize<GitTreeResponse>(json, JsonOptions)!;
+
+        var paths = response.Tree.Select(t => t.Path).ToHashSet();
         var prefix = _templatesPath + "/";
 
-        return tree.Tree
-            .Where(t => t.Type == TreeType.Tree &&
+        return response.Tree
+            .Where(t => t.Type == "tree" &&
                         t.Path.StartsWith(prefix) &&
                         !t.Path[prefix.Length..].Contains('/'))
             .Select(t =>
@@ -44,8 +57,8 @@ public class GitHubService
 
     public async Task<string> GetFileContentAsync(string path)
     {
-        var contents = await _client.Repository.Content.GetAllContents(_owner, _repo, path);
-        return contents[0].Content;
+        var url = $"https://raw.githubusercontent.com/{_owner}/{_repo}/HEAD/{path}";
+        return await _http.GetStringAsync(url);
     }
 
     public string GetDevcontainerJsonPath(string templateName) =>
@@ -56,4 +69,11 @@ public class GitHubService
 
     public string GetReadmePath(string templateName) =>
         $"{_templatesPath}/{templateName}/README.md";
+
+    private record GitTreeResponse(
+        [property: JsonPropertyName("tree")] List<GitTreeItem> Tree);
+
+    private record GitTreeItem(
+        [property: JsonPropertyName("path")] string Path,
+        [property: JsonPropertyName("type")] string Type);
 }
