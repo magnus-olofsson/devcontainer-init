@@ -113,7 +113,7 @@ Lägg till den mappen i din `PATH` eller kopiera binären till en mapp som redan
 
 ## Att tänka på
 
-**GitHub API-gränser** — `dci` använder GitHubs publika API utan autentisering, vilket ger 60 anrop per timme per IP. För personligt bruk räcker det gott. Verktyget hämtar hela filträdet i ett enda API-anrop och minimerar därmed antalet requests.
+**GitHub API-gränser** — `dci` gör ett enda anrop mot `api.github.com` (för att hämta filträdet). Det omfattas av GitHubs gräns på 60 anrop per timme för oautentiserade anrop, men eftersom det bara sker en gång per körning är det i praktiken inget problem. Filinnehåll (devcontainer.json, Dockerfile, README) hämtas från `raw.githubusercontent.com` som är en CDN utan motsvarande begränsning.
 
 **Repot måste vara publikt** — autentisering stöds inte i nuläget.
 
