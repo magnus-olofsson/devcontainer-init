@@ -21,6 +21,16 @@ public class TemplateService
         {
             template.HasDockerfile = await _github.FileExistsAsync(
                 _github.GetDockerfilePath(template.Name));
+
+            try
+            {
+                var readme = await _github.GetFileContentAsync(_github.GetReadmePath(template.Name));
+                template.Description = readme
+                    .Split('\n')
+                    .Select(l => l.Trim())
+                    .FirstOrDefault(l => l.Length > 0 && !l.StartsWith('#'));
+            }
+            catch { }
         }
 
         return templates;

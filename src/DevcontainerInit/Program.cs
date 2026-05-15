@@ -65,6 +65,8 @@ for (int i = 0; i < templates.Count; i++)
 {
     var dockerTag = templates[i].HasDockerfile ? " [grey](inkl. Dockerfile)[/]" : "";
     AnsiConsole.MarkupLine($"  [cyan]{i + 1}[/]. {templates[i].Name}{dockerTag}");
+    if (templates[i].Description is not null)
+        AnsiConsole.MarkupLine($"     [grey]{templates[i].Description}[/]");
 }
 
 AnsiConsole.WriteLine();
