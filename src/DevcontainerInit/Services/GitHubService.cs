@@ -20,26 +20,26 @@ public class GitHubService
 
     public async Task<List<Template>> GetTemplatesAsync()
     {
-        var contents = await _client.Repository.Content.GetAllContents(_owner, _repo, _templatesPath);
+        var tree = await _client.Git.Tree.GetRecursive(_owner, _repo, "HEAD");
+        var paths = tree.Tree.Select(t => t.Path).ToHashSet();
+        var prefix = _templatesPath + "/";
 
-        return contents
-            .Where(c => c.Type == ContentType.Dir)
-            .Select(c => new Template { Name = c.Name })
+        return tree.Tree
+            .Where(t => t.Type == TreeType.Tree &&
+                        t.Path.StartsWith(prefix) &&
+                        !t.Path[prefix.Length..].Contains('/'))
+            .Select(t =>
+            {
+                var name = t.Path[prefix.Length..];
+                return new Template
+                {
+                    Name = name,
+                    HasDockerfile = paths.Contains($"{prefix}{name}/Dockerfile"),
+                    HasReadme = paths.Contains($"{prefix}{name}/README.md"),
+                };
+            })
             .OrderBy(t => t.Name)
             .ToList();
-    }
-
-    public async Task<bool> FileExistsAsync(string path)
-    {
-        try
-        {
-            await _client.Repository.Content.GetAllContents(_owner, _repo, path);
-            return true;
-        }
-        catch (NotFoundException)
-        {
-            return false;
-        }
     }
 
     public async Task<string> GetFileContentAsync(string path)
